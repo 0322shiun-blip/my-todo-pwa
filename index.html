@@ -10,64 +10,33 @@
 </head>
 <body>
 <header>
-  <div>
-    <h1>我的待辦</h1>
-    <div id="today"></div>
-  </div>
+  <div><h1>我的待辦</h1><div id="today"></div></div>
   <button id="notifyBtn" class="secondary">開啟通知</button>
 </header>
-
 <main>
   <section class="card add">
     <input id="title" placeholder="輸入待辦事項，例如：確認報價單">
     <div class="row">
       <input id="due" type="datetime-local">
-      <select id="priority">
-        <option value="high">高優先</option>
-        <option value="normal" selected>一般</option>
-        <option value="low">低優先</option>
-      </select>
+      <select id="priority"><option value="high">高優先</option><option value="normal" selected>一般</option><option value="low">低優先</option></select>
     </div>
     <div class="row">
-      <select id="preReminder">
-        <option value="0">到期時提醒</option>
-        <option value="10">提前 10 分鐘</option>
-        <option value="30">提前 30 分鐘</option>
-        <option value="60" selected>提前 1 小時</option>
-        <option value="240">提前 4 小時</option>
-        <option value="1440">提前 1 天</option>
-      </select>
-      <button id="addBtn">＋新增待辦</button>
+      <select id="category"><option value="工作">工作</option><option value="工程">工程</option><option value="生活">生活</option><option value="其他">其他</option></select>
+      <select id="preReminder"><option value="0">到期時提醒</option><option value="10">提前 10 分鐘</option><option value="30">提前 30 分鐘</option><option value="60" selected>提前 1 小時</option><option value="240">提前 4 小時</option><option value="1440">提前 1 天</option></select>
     </div>
+    <div class="row"><button id="addBtn">＋新增待辦</button><button id="historyBtn" class="secondary darkText">🔎 歷史／查詢</button></div>
     <textarea id="note" placeholder="備註（可不填）"></textarea>
   </section>
-
+  <section id="filters" class="card filters hidden">
+    <input id="search" placeholder="搜尋標題、備註、分類…">
+    <div class="row"><input id="fromDate" type="date"><input id="toDate" type="date"></div>
+    <div class="row"><select id="statusFilter"><option value="all">全部狀態</option><option value="active">待辦</option><option value="done">已完成</option><option value="deleted">已刪除</option></select><select id="categoryFilter"><option value="all">全部分類</option><option>工作</option><option>工程</option><option>生活</option><option>其他</option></select></div>
+    <button id="clearFilter" class="secondary darkText">清除查詢條件</button>
+  </section>
   <section id="summary" class="summary"></section>
   <section id="list"></section>
 </main>
-
-<template id="itemTpl">
-  <article class="task card">
-    <div class="task-main">
-      <div class="badge"></div>
-      <div>
-        <h2 class="task-title"></h2>
-        <div class="meta"></div>
-        <div class="note"></div>
-      </div>
-    </div>
-    <div class="actions">
-      <button data-action="done">✓ 完成</button>
-      <button data-action="nextmonth">下月待辦</button>
-      <button data-action="snooze10">10分鐘</button>
-      <button data-action="snooze240">4小時</button>
-      <button data-action="snooze480">8小時</button>
-      <button data-action="custom">自訂提醒</button>
-      <button data-action="delete" class="danger">刪除</button>
-    </div>
-  </article>
-</template>
-
+<template id="itemTpl"><article class="task card"><div class="task-main"><div class="badge"></div><div class="grow"><h2 class="task-title"></h2><div class="meta"></div><div class="note"></div></div></div><div class="actions"><button data-action="done">✓ 完成</button><button data-action="nextmonth">下月待辦</button><button data-action="snooze10">10分鐘</button><button data-action="snooze240">4小時</button><button data-action="snooze480">8小時</button><button data-action="custom">自訂提醒</button><button data-action="restore">恢復</button><button data-action="delete" class="danger">刪除</button></div></article></template>
 <script src="app.js"></script>
 </body>
 </html>
