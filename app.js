@@ -1,17 +1,20 @@
 const KEY="mytodo.v1";
 let tasks=JSON.parse(localStorage.getItem(KEY)||"[]");
 const $=id=>document.getElementById(id);
-// Keep old data compatible: active/done records gain history-friendly fields.
 tasks=tasks.map(t=>({...t,status:t.status||"active",category:t.category||"其他"}));
 function save(){localStorage.setItem(KEY,JSON.stringify(tasks))}
 function pad(n){return String(n).padStart(2,"0")}
 function fmt(d){return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`}
 function localDateInput(){const d=new Date(Date.now()+60*60*1000);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
 function cls(t){if(t.status==="done")return"done";if(t.status==="deleted")return"deleted";const d=new Date(t.due),n=new Date();if(d<n)return"overdue";if(d.toDateString()===n.toDateString())return"today";return""}
+function normalize(s){return String(s||"").toLowerCase().replace(/[\s　，,。.!！?？、:：;；\-_/\\()（）【】\[\]「」『』]+/g,"")}
 function matches(t){
-  const q=$("search").value.trim().toLowerCase();
-  const text=[t.title,t.note,t.category].join(" ").toLowerCase();
-  if(q&&!text.includes(q))return false;
+  const q=normalize($("search").value);
+  const text=normalize([t.title,t.content,t.note,t.category,t.priority,t.status,fmt(new Date(t.due))].join(" "));
+  if(q){
+    const terms=$("search").value.trim().split(/[\s　]+/).map(normalize).filter(Boolean);
+    if(!terms.every(term=>text.includes(term)))return false;
+  }
   const s=$("statusFilter").value;if(s!=="all"&&t.status!==s)return false;
   const c=$("categoryFilter").value;if(c!=="all"&&(t.category||"其他")!==c)return false;
   const due=new Date(t.due); const from=$("fromDate").value; const to=$("toDate").value;
@@ -33,7 +36,7 @@ function render(){
     const status=t.status==="done"?"已完成":t.status==="deleted"?"已刪除":"待辦";
     const times=t.remindAt?`　｜　提醒：${fmt(new Date(t.remindAt))}`:"";
     node.querySelector(".meta").textContent=`期限：${fmt(new Date(t.due))}　｜　${t.category||"其他"}　｜　${t.priority==="high"?"高優先":t.priority==="low"?"低優先":"一般"}　｜　${status}${times}`;
-    node.querySelector(".note").textContent=t.note||"";
+    node.querySelector(".note").textContent=t.note||t.content||"";
     const done=node.querySelector('[data-action="done"]'),del=node.querySelector('[data-action="delete"]'),restore=node.querySelector('[data-action="restore"]');
     if(t.status!=="active"){done.style.display="none";node.querySelector('[data-action="nextmonth"]').style.display="none";node.querySelector('[data-action="snooze10"]').style.display="none";node.querySelector('[data-action="snooze240"]').style.display="none";node.querySelector('[data-action="snooze480"]').style.display="none";node.querySelector('[data-action="custom"]').style.display="none"}
     if(t.status==="deleted")del.style.display="none";else del.textContent="刪除（保留紀錄）";
@@ -65,8 +68,8 @@ $("list").onclick=e=>{
 };
 $("historyBtn").onclick=()=>{$("filters").classList.toggle("hidden");if(!$('filters').classList.contains('hidden'))$('search').focus();render()};
 ["search","fromDate","toDate","statusFilter","categoryFilter"].forEach(id=>$(id).addEventListener("input",render));
-$("clearFilter").onclick=()=>{$("search").value="";$("fromDate").value="";$("toDate").value="";$("statusFilter").value="all";$("categoryFilter").value="all";render()};
-$("notifyBtn").onclick=async()=>{if(!( "Notification"in window)){alert("此瀏覽器不支援通知");return}const p=await Notification.requestPermission();alert(p==="granted"?"通知已開啟。iPhone 請將本網頁加入主畫面後使用。":"尚未允許通知")};
+$("clearFilter").onclick=()=>{$("search").value="";$('fromDate').value="";$('toDate').value="";$('statusFilter').value="all";$('categoryFilter').value="all";render()};
+$("notifyBtn").onclick=async()=>{if(!('Notification'in window)){alert("此瀏覽器不支援通知");return}const p=await Notification.requestPermission();alert(p==="granted"?"通知已開啟。iPhone 請將本網頁加入主畫面後使用。":"尚未允許通知")};
 function notify(t){if(Notification.permission==="granted"){new Notification("待辦提醒",{body:`${t.title}\n期限：${fmt(new Date(t.due))}`});t.lastNotified=Date.now();save()}}
 function scheduleCheck(){const due=tasks.filter(t=>t.status==="active"&&t.remindAt&&!t.lastNotified).sort((a,b)=>a.remindAt-b.remindAt)[0];if(!due)return;const delay=Math.max(1000,due.remindAt-Date.now());clearTimeout(window.todoTimer);window.todoTimer=setTimeout(()=>{notify(due);scheduleCheck();render()},delay)}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
