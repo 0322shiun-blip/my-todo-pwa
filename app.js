@@ -1,23 +1,24 @@
 const KEY="mytodo.v1";
 let tasks=JSON.parse(localStorage.getItem(KEY)||"[]");
 const $=id=>document.getElementById(id);
-tasks=tasks.map(t=>({...t,status:t.status||"active",category:t.category||"其他"}));
+tasks=tasks.map(t=>({...t,status:t.status||"active",category:t.category||"其他",updatedAt:t.updatedAt||t.createdAt||Date.now()}));
 function save(){localStorage.setItem(KEY,JSON.stringify(tasks))}
 function pad(n){return String(n).padStart(2,"0")}
 function fmt(d){return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`}
 function localDateInput(){const d=new Date(Date.now()+60*60*1000);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
 function cls(t){if(t.status==="done")return"done";if(t.status==="deleted")return"deleted";const d=new Date(t.due),n=new Date();if(d<n)return"overdue";if(d.toDateString()===n.toDateString())return"today";return""}
-function normalize(s){return String(s||"").toLowerCase().replace(/[\s　，,。.!！?？、:：;；\-_/\\()（）【】\[\]「」『』]+/g,"")}
+function normalize(s){return String(s??"").toLowerCase().replace(/[\s　，,。.!！?？、:：;；\-_/\\()（）【】\[\]「」『』]+/g,"")}
+function getSearchTerms(){return $("search").value.trim().split(/[\s　]+/).map(normalize).filter(Boolean)}
 function matches(t){
-  const q=normalize($("search").value);
-  const text=normalize([t.title,t.content,t.note,t.category,t.priority,t.status,fmt(new Date(t.due))].join(" "));
-  if(q){
-    const terms=$("search").value.trim().split(/[\s　]+/).map(normalize).filter(Boolean);
+  const terms=getSearchTerms();
+  if(terms.length){
+    const text=normalize([t.title,t.content,t.note,t.category,t.priority,t.status,fmt(new Date(t.due)),t.createdAt&&fmt(new Date(t.createdAt)),t.completedAt&&fmt(new Date(t.completedAt)),t.deletedAt&&fmt(new Date(t.deletedAt))].filter(Boolean).join(" "));
     if(!terms.every(term=>text.includes(term)))return false;
   }
   const s=$("statusFilter").value;if(s!=="all"&&t.status!==s)return false;
   const c=$("categoryFilter").value;if(c!=="all"&&(t.category||"其他")!==c)return false;
-  const due=new Date(t.due); const from=$("fromDate").value; const to=$("toDate").value;
+  const due=new Date(t.due);
+  const from=$("fromDate").value;const to=$("toDate").value;
   if(from){const d=new Date(from+"T00:00:00");if(due<d)return false}
   if(to){const d=new Date(to+"T23:59:59.999");if(due>d)return false}
   return true;
@@ -25,7 +26,7 @@ function matches(t){
 function render(){
   $("today").textContent=new Date().toLocaleDateString("zh-TW",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
   const active=tasks.filter(t=>t.status==="active").sort((a,b)=>new Date(a.due)-new Date(b.due));
-  const done=tasks.filter(t=>t.status==="done"); const deleted=tasks.filter(t=>t.status==="deleted");
+  const done=tasks.filter(t=>t.status==="done");const deleted=tasks.filter(t=>t.status==="deleted");
   $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>new Date(t.due)<new Date()).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span>`;
   const list=$("list");list.innerHTML="";
   const filtered=tasks.filter(matches).sort((a,b)=>new Date(b.updatedAt||b.completedAt||b.deletedAt||b.createdAt||b.due)-new Date(a.updatedAt||a.completedAt||a.deletedAt||a.createdAt||a.due));
@@ -68,6 +69,7 @@ $("list").onclick=e=>{
 };
 $("historyBtn").onclick=()=>{$("filters").classList.toggle("hidden");if(!$('filters').classList.contains('hidden'))$('search').focus();render()};
 ["search","fromDate","toDate","statusFilter","categoryFilter"].forEach(id=>$(id).addEventListener("input",render));
+["statusFilter","categoryFilter"].forEach(id=>$(id).addEventListener("change",render));
 $("clearFilter").onclick=()=>{$("search").value="";$('fromDate').value="";$('toDate').value="";$('statusFilter').value="all";$('categoryFilter').value="all";render()};
 $("notifyBtn").onclick=async()=>{if(!('Notification'in window)){alert("此瀏覽器不支援通知");return}const p=await Notification.requestPermission();alert(p==="granted"?"通知已開啟。iPhone 請將本網頁加入主畫面後使用。":"尚未允許通知")};
 function notify(t){if(Notification.permission==="granted"){new Notification("待辦提醒",{body:`${t.title}\n期限：${fmt(new Date(t.due))}`});t.lastNotified=Date.now();save()}}
