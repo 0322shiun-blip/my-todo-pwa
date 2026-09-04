@@ -28,7 +28,7 @@
     <textarea id="note" placeholder="備註（可不填）"></textarea>
   </section>
   <section id="filters" class="card filters">
-    <input id="search" type="search" autocomplete="off" placeholder="🔎 輸入關鍵字搜尋標題、備註、分類…">
+    <input id="search" type="search" autocomplete="off" placeholder="🔎 輸入關鍵字搜尋全部待辦與歷史紀錄…">
     <div class="row"><input id="fromDate" type="date"><input id="toDate" type="date"></div>
     <div class="row"><select id="statusFilter"><option value="all">全部狀態</option><option value="active">待辦</option><option value="done">已完成</option><option value="deleted">已刪除</option></select><select id="categoryFilter"><option value="all">全部分類</option><option>工作</option><option>工程</option><option>生活</option><option>其他</option></select></div>
     <button id="clearFilter" class="secondary darkText">清除查詢條件</button>
@@ -37,6 +37,6 @@
   <section id="list"></section>
 </main>
 <template id="itemTpl"><article class="task card"><div class="task-main"><div class="badge"></div><div class="grow"><h2 class="task-title"></h2><div class="meta"></div><div class="note"></div></div></div><div class="actions"><button data-action="done">✓ 完成</button><button data-action="nextmonth">下月待辦</button><button data-action="snooze10">10分鐘</button><button data-action="snooze240">4小時</button><button data-action="snooze480">8小時</button><button data-action="custom">自訂提醒</button><button data-action="restore">恢復</button><button data-action="delete" class="danger">刪除</button></div></article></template>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
