@@ -23,13 +23,19 @@ function matches(t){
   if(to){const d=new Date(to+"T23:59:59.999");if(due>d)return false}
   return true;
 }
+function statusRank(t){return t.status==="active"?0:t.status==="done"?1:2}
 function render(){
   $("today").textContent=new Date().toLocaleDateString("zh-TW",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
   const active=tasks.filter(t=>t.status==="active").sort((a,b)=>new Date(a.due)-new Date(b.due));
   const done=tasks.filter(t=>t.status==="done");const deleted=tasks.filter(t=>t.status==="deleted");
   $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>new Date(t.due)<new Date()).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span>`;
   const list=$("list");list.innerHTML="";
-  const filtered=tasks.filter(matches).sort((a,b)=>new Date(b.updatedAt||b.completedAt||b.deletedAt||b.createdAt||b.due)-new Date(a.updatedAt||a.completedAt||a.deletedAt||a.createdAt||a.due));
+  const filtered=tasks.filter(matches).sort((a,b)=>{
+    const sr=statusRank(a)-statusRank(b);
+    if(sr!==0)return sr;
+    if(a.status==="active")return new Date(a.due)-new Date(b.due);
+    return new Date(b.updatedAt||b.completedAt||b.deletedAt||b.createdAt||b.due)-new Date(a.updatedAt||a.completedAt||a.deletedAt||a.createdAt||a.due);
+  });
   if(!filtered.length){list.innerHTML='<div class="empty">沒有符合條件的紀錄</div>';return}
   filtered.forEach(t=>{
     const node=$("itemTpl").content.cloneNode(true),el=node.querySelector(".task");el.classList.add(cls(t));el.dataset.id=t.id;
