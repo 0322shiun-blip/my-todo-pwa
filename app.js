@@ -12,13 +12,24 @@ function localDateInput(){const d=new Date(Date.now()+60*60*1000);return `${d.ge
 function cls(t){const s=canonicalStatus(t);if(s==="done")return"done";if(s==="deleted")return"deleted";const d=new Date(t.due),n=new Date();if(!isNaN(d)&&d<n)return"overdue";if(!isNaN(d)&&d.toDateString()===n.toDateString())return"today";return""}
 function normalize(s){return String(s??"").toLowerCase().replace(/[\s　，,。.!！?？、:：;；\-_/\\()（）【】\[\]「」『』]+/g,"")}
 function getSearchTerms(){return $("search")?$("search").value.trim().split(/[\s　]+/).map(normalize).filter(Boolean):[]}
-function matches(t,ignoreStatus=false){const terms=getSearchTerms();if(terms.length){const text=normalize([t.title,t.content,t.note,t.category,t.priority,canonicalStatus(t),canonicalStatus(t)==="active"?"待辦":"",canonicalStatus(t)==="done"?"已完成":"",canonicalStatus(t)==="deleted"?"已刪除":"",fmt(new Date(t.due)),t.createdAt&&fmt(new Date(t.createdAt)),t.completedAt&&fmt(new Date(t.completedAt)),t.deletedAt&&fmt(new Date(t.deletedAt))].filter(Boolean).join(" "));if(!terms.every(x=>text.includes(x)))return false}const s=$("statusFilter")?.value||"all";if(!ignoreStatus&&s!=="all"&&canonicalStatus(t)!==s)return false;const c=$("categoryFilter")?.value||"all";if(c!=="all"&&(t.category||"其他")!==c)return false;const from=$("fromDate")?.value||"",to=$("toDate")?.value||"";const due=new Date(t.due);if(from&&!isNaN(due.getTime())&&due<new Date(from+"T00:00:00"))return false;if(to&&!isNaN(due.getTime())&&due>new Date(to+"T23:59:59.999"))return false;return true}
+function matches(t){
+ const terms=getSearchTerms();
+ if(terms.length){const text=normalize([t.title,t.content,t.note,t.category,t.priority,canonicalStatus(t),canonicalStatus(t)==="active"?"待辦":"",canonicalStatus(t)==="done"?"已完成":"",canonicalStatus(t)==="deleted"?"已刪除":"",fmt(new Date(t.due)),t.createdAt&&fmt(new Date(t.createdAt)),t.completedAt&&fmt(new Date(t.completedAt)),t.deletedAt&&fmt(new Date(t.deletedAt))].filter(Boolean).join(" "));if(!terms.every(x=>text.includes(x)))return false}
+ const s=($("statusFilter")?.value||"all").trim();
+ if(s!=="all"&&canonicalStatus(t)!==s)return false;
+ const c=($("categoryFilter")?.value||"all").trim();
+ if(c!=="all"&&(t.category||"其他")!==c)return false;
+ const from=$("fromDate")?.value||"",to=$("toDate")?.value||"";const due=new Date(t.due);
+ if(from&&!isNaN(due.getTime())&&due<new Date(from+"T00:00:00"))return false;
+ if(to&&!isNaN(due.getTime())&&due>new Date(to+"T23:59:59.999"))return false;
+ return true
+}
 function statusRank(t){const s=canonicalStatus(t);return s==="active"?0:s==="done"?1:2}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("zh-TW",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
  const active=tasks.filter(t=>canonicalStatus(t)==="active"),done=tasks.filter(t=>canonicalStatus(t)==="done"),deleted=tasks.filter(t=>canonicalStatus(t)==="deleted");
  $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>{const d=new Date(t.due);return !isNaN(d)&&d<new Date()}).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span>`;
- let filtered=tasks.filter(t=>matches(t,false));
+ let filtered=tasks.filter(matches);
  filtered.sort((a,b)=>{const sr=statusRank(a)-statusRank(b);if(sr)return sr;return canonicalStatus(a)==="active"?(Number(a.due)||Infinity)-(Number(b.due)||Infinity):Number(b.updatedAt||b.completedAt||b.deletedAt||b.createdAt||0)-Number(a.updatedAt||a.completedAt||a.deletedAt||a.createdAt||0)});
  const list=$("list");list.innerHTML="";
  if(!filtered.length){list.innerHTML='<div class="empty">沒有符合條件的紀錄</div>';return}
