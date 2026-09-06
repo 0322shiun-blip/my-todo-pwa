@@ -12,31 +12,18 @@ function localDateInput(){const d=new Date(Date.now()+60*60*1000);return `${d.ge
 function cls(t){const s=canonicalStatus(t);if(s==="done")return"done";if(s==="deleted")return"deleted";const d=new Date(t.due),n=new Date();if(!isNaN(d)&&d<n)return"overdue";if(!isNaN(d)&&d.toDateString()===n.toDateString())return"today";return""}
 function normalize(s){return String(s??"").toLowerCase().replace(/[\s　，,。.!！?？、:：;；\-_/\\()（）【】\[\]「」『』]+/g,"")}
 function getSearchTerms(){return $("search")?$("search").value.trim().split(/[\s　]+/).map(normalize).filter(Boolean):[]}
-function matches(t){
- const terms=getSearchTerms();
- if(terms.length){const text=normalize([t.title,t.content,t.note,t.category,t.priority,canonicalStatus(t),canonicalStatus(t)==="active"?"待辦":"",canonicalStatus(t)==="done"?"已完成":"",canonicalStatus(t)==="deleted"?"已刪除":"",fmt(new Date(t.due)),t.createdAt&&fmt(new Date(t.createdAt)),t.completedAt&&fmt(new Date(t.completedAt)),t.deletedAt&&fmt(new Date(t.deletedAt))].filter(Boolean).join(" "));if(!terms.every(x=>text.includes(x)))return false}
- const s=($("statusFilter")?.value||"all").trim();
- if(s!=="all"&&canonicalStatus(t)!==s)return false;
- const c=($("categoryFilter")?.value||"all").trim();
- if(c!=="all"&&(t.category||"其他")!==c)return false;
- const from=$("fromDate")?.value||"",to=$("toDate")?.value||"";const due=new Date(t.due);
- if(from&&!isNaN(due.getTime())&&due<new Date(from+"T00:00:00"))return false;
- if(to&&!isNaN(due.getTime())&&due>new Date(to+"T23:59:59.999"))return false;
- return true
-}
+function matches(t){const terms=getSearchTerms();if(terms.length){const text=normalize([t.title,t.content,t.note,t.category,t.priority,canonicalStatus(t),canonicalStatus(t)==="active"?"待辦":"",canonicalStatus(t)==="done"?"已完成":"",canonicalStatus(t)==="deleted"?"已刪除":"",fmt(new Date(t.due)),t.createdAt&&fmt(new Date(t.createdAt)),t.completedAt&&fmt(new Date(t.completedAt)),t.deletedAt&&fmt(new Date(t.deletedAt))].filter(Boolean).join(" "));if(!terms.every(x=>text.includes(x)))return false}const s=($("statusFilter")?.value||"all").trim();if(s!=="all"&&canonicalStatus(t)!==s)return false;const c=($("categoryFilter")?.value||"all").trim();if(c!=="all"&&(t.category||"其他")!==c)return false;const from=$("fromDate")?.value||"",to=$("toDate")?.value||"";const due=new Date(t.due);if(from&&!isNaN(due.getTime())&&due<new Date(from+"T00:00:00"))return false;if(to&&!isNaN(due.getTime())&&due>new Date(to+"T23:59:59.999"))return false;return true}
 function statusRank(t){const s=canonicalStatus(t);return s==="active"?0:s==="done"?1:2}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 function render(){
  $("today").textContent=new Date().toLocaleDateString("zh-TW",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
  const active=tasks.filter(t=>canonicalStatus(t)==="active"),done=tasks.filter(t=>canonicalStatus(t)==="done"),deleted=tasks.filter(t=>canonicalStatus(t)==="deleted");
  let filtered=tasks.filter(matches);
- $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>{const d=new Date(t.due);return !isNaN(d)&&d<new Date()}).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span><span style="opacity:.7">查詢 ${filtered.length} 筆</span>`;
  filtered.sort((a,b)=>{const sr=statusRank(a)-statusRank(b);if(sr)return sr;return canonicalStatus(a)==="active"?(Number(a.due)||Infinity)-(Number(b.due)||Infinity):Number(b.updatedAt||b.completedAt||b.deletedAt||b.createdAt||0)-Number(a.updatedAt||a.completedAt||a.deletedAt||a.createdAt||0)});
- const list=$("list");list.innerHTML="";
- if(!filtered.length){
-   const s=$("statusFilter")?.value||"all", c=$("categoryFilter")?.value||"all", q=$("search")?.value||"";
-   list.innerHTML=`<div class="empty">沒有符合條件的紀錄<br><small>查詢條件：${s}／${c}${q?`／關鍵字：${q}`:""}<br>目前資料：待辦 ${active.length}、已完成 ${done.length}、已刪除 ${deleted.length}</small></div>`;return
- }
- filtered.forEach(t=>{const node=$("itemTpl").content.cloneNode(true),el=node.querySelector(".task"),s=canonicalStatus(t);el.classList.add(cls(t));el.dataset.id=t.id;node.querySelector(".task-title").textContent=t.title||"（未命名待辦）";node.querySelector(".meta").textContent=`期限：${fmt(new Date(t.due))}　｜　${t.category||"其他"}　｜　${t.priority==="high"?"高優先":t.priority==="low"?"低優先":"一般"}　｜　${s==="done"?"已完成":s==="deleted"?"已刪除":"待辦"}${t.remindAt?`　｜　提醒：${fmt(new Date(t.remindAt))}`:""}`;node.querySelector(".note").textContent=t.note||t.content||"";const done=node.querySelector('[data-action="done"]'),del=node.querySelector('[data-action="delete"]'),restore=node.querySelector('[data-action="restore"]');if(s!=="active"){done.style.display="none";["nextmonth","snooze10","snooze240","snooze480","custom"].forEach(a=>node.querySelector(`[data-action="${a}"]`).style.display="none")}if(s==="deleted")del.style.display="none";else del.textContent="刪除（保留紀錄）";if(s==="active")restore.style.display="none";if(s==="done")restore.textContent="恢復待辦";if(s==="deleted")restore.textContent="恢復紀錄";list.appendChild(node)})
+ $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>{const d=new Date(t.due);return !isNaN(d)&&d<new Date()}).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span><span>查詢 ${filtered.length} 筆</span>`;
+ const list=$("list");
+ if(!filtered.length){const s=$("statusFilter")?.value||"all",c=$("categoryFilter")?.value||"all",q=$("search")?.value||"";list.innerHTML=`<div class="empty">沒有符合條件的紀錄<br><small>查詢條件：${esc(s)}／${esc(c)}${q?`／關鍵字：${esc(q)}`:""}<br>目前資料：待辦 ${active.length}、已完成 ${done.length}、已刪除 ${deleted.length}</small></div>`;return}
+ list.innerHTML=filtered.map(t=>{const s=canonicalStatus(t);const buttons=s!=="active"?`<button data-action="restore">${s==="done"?"恢復待辦":"恢復紀錄"}</button>`:`<button data-action="done">✓ 完成</button><button data-action="nextmonth">下月待辦</button><button data-action="snooze10">10分鐘</button><button data-action="snooze240">4小時</button><button data-action="snooze480">8小時</button><button data-action="custom">自訂提醒</button><button data-action="delete" class="danger">刪除（保留紀錄）</button>`;return `<article class="task card ${cls(t)}" data-id="${esc(t.id)}"><div class="task-main"><div class="badge"></div><div class="grow"><h2 class="task-title">${esc(t.title||"（未命名待辦）")}</h2><div class="meta">期限：${esc(fmt(new Date(t.due)))}　｜　${esc(t.category||"其他")}　｜　${t.priority==="high"?"高優先":t.priority==="low"?"低優先":"一般"}　｜　${s==="done"?"已完成":s==="deleted"?"已刪除":"待辦"}${t.remindAt?`　｜　提醒：${esc(fmt(new Date(t.remindAt)))}`:""}</div><div class="note">${esc(t.note||t.content||"")}</div></div></div><div class="actions">${buttons}</div></article>`}).join("");
 }
 function resetFilters(){["search","fromDate","toDate"].forEach(id=>{if($(id))$(id).value=""});if($("statusFilter"))$("statusFilter").value="all";if($("categoryFilter"))$("categoryFilter").value="all"}
 resetFilters();save();$("due").value=localDateInput();
@@ -47,4 +34,4 @@ $("historyBtn").onclick=()=>{$("filters").classList.toggle("hidden");if(!$('filt
 $("notifyBtn").onclick=async()=>{if(!('Notification'in window)){alert("此瀏覽器不支援通知");return}const p=await Notification.requestPermission();alert(p==="granted"?"通知已開啟。iPhone 請將本網頁加入主畫面後使用。":"尚未允許通知")};
 function notify(t){if(Notification.permission==="granted"){new Notification("待辦提醒",{body:`${t.title}\n期限：${fmt(new Date(t.due))}`});t.lastNotified=Date.now();save()}}
 function scheduleCheck(){const due=tasks.filter(t=>canonicalStatus(t)==="active"&&t.remindAt&&!t.lastNotified).sort((a,b)=>a.remindAt-b.remindAt)[0];if(!due)return;clearTimeout(window.todoTimer);window.todoTimer=setTimeout(()=>{notify(due);scheduleCheck();render()},Math.max(1000,due.remindAt-Date.now()))}
-if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});render();scheduleCheck();
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js?v=11").catch(()=>{});render();scheduleCheck();
