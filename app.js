@@ -28,11 +28,14 @@ function statusRank(t){const s=canonicalStatus(t);return s==="active"?0:s==="don
 function render(){
  $("today").textContent=new Date().toLocaleDateString("zh-TW",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
  const active=tasks.filter(t=>canonicalStatus(t)==="active"),done=tasks.filter(t=>canonicalStatus(t)==="done"),deleted=tasks.filter(t=>canonicalStatus(t)==="deleted");
- $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>{const d=new Date(t.due);return !isNaN(d)&&d<new Date()}).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span>`;
  let filtered=tasks.filter(matches);
+ $("summary").innerHTML=`<span>待辦 ${active.length}</span><span>逾期 ${active.filter(t=>{const d=new Date(t.due);return !isNaN(d)&&d<new Date()}).length}</span><span>已完成 ${done.length}</span><span>已刪除 ${deleted.length}</span><span style="opacity:.7">查詢 ${filtered.length} 筆</span>`;
  filtered.sort((a,b)=>{const sr=statusRank(a)-statusRank(b);if(sr)return sr;return canonicalStatus(a)==="active"?(Number(a.due)||Infinity)-(Number(b.due)||Infinity):Number(b.updatedAt||b.completedAt||b.deletedAt||b.createdAt||0)-Number(a.updatedAt||a.completedAt||a.deletedAt||a.createdAt||0)});
  const list=$("list");list.innerHTML="";
- if(!filtered.length){list.innerHTML='<div class="empty">沒有符合條件的紀錄</div>';return}
+ if(!filtered.length){
+   const s=$("statusFilter")?.value||"all", c=$("categoryFilter")?.value||"all", q=$("search")?.value||"";
+   list.innerHTML=`<div class="empty">沒有符合條件的紀錄<br><small>查詢條件：${s}／${c}${q?`／關鍵字：${q}`:""}<br>目前資料：待辦 ${active.length}、已完成 ${done.length}、已刪除 ${deleted.length}</small></div>`;return
+ }
  filtered.forEach(t=>{const node=$("itemTpl").content.cloneNode(true),el=node.querySelector(".task"),s=canonicalStatus(t);el.classList.add(cls(t));el.dataset.id=t.id;node.querySelector(".task-title").textContent=t.title||"（未命名待辦）";node.querySelector(".meta").textContent=`期限：${fmt(new Date(t.due))}　｜　${t.category||"其他"}　｜　${t.priority==="high"?"高優先":t.priority==="low"?"低優先":"一般"}　｜　${s==="done"?"已完成":s==="deleted"?"已刪除":"待辦"}${t.remindAt?`　｜　提醒：${fmt(new Date(t.remindAt))}`:""}`;node.querySelector(".note").textContent=t.note||t.content||"";const done=node.querySelector('[data-action="done"]'),del=node.querySelector('[data-action="delete"]'),restore=node.querySelector('[data-action="restore"]');if(s!=="active"){done.style.display="none";["nextmonth","snooze10","snooze240","snooze480","custom"].forEach(a=>node.querySelector(`[data-action="${a}"]`).style.display="none")}if(s==="deleted")del.style.display="none";else del.textContent="刪除（保留紀錄）";if(s==="active")restore.style.display="none";if(s==="done")restore.textContent="恢復待辦";if(s==="deleted")restore.textContent="恢復紀錄";list.appendChild(node)})
 }
 function resetFilters(){["search","fromDate","toDate"].forEach(id=>{if($(id))$(id).value=""});if($("statusFilter"))$("statusFilter").value="all";if($("categoryFilter"))$("categoryFilter").value="all"}
